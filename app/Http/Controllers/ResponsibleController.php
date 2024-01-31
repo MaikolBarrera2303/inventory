@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Responsibles\StoreResponsibleRequest;
+use App\Http\Requests\Responsibles\UpdateResponsibleRequest;
+use App\Models\Api;
 use App\Models\Responsible;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -9,9 +12,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
-use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
 use Throwable;
 
 class ResponsibleController extends Controller
@@ -19,37 +20,36 @@ class ResponsibleController extends Controller
     /**
      * @return Application|Factory|View
      */
-    public function index(): View|Factory|Application
+    public function index()
     {
-        return view("responsibles.index",[
-            "responsibles" => Responsible::orderBy("name","asc")->paginate(10)
-        ]);
+        try
+        {
+            return view("responsibles.index",[
+                "responsibles" => (new Api)->index("responsibles",request("page"))
+            ]);
+        }
+        catch(Throwable $throwable)
+        {
+            Log::channel("error_inventory")->error("ERROR RESPONSIBLE INDEX : ".json_encode($throwable->getMessage()));
+            return redirect(route("logout"))->with("error","Error API");
+        }
     }
 
     /**
      * @param Request $request
      * @return Application|RedirectResponse|Redirector
      */
-    public function store(Request $request): Redirector|RedirectResponse|Application
+    public function store(StoreResponsibleRequest $request)
     {
-        $request->validate([
-            "name" => Rule::unique(Responsible::class),
-            "account" => Rule::unique(Responsible::class),
-        ],[
-            "name.unique" => "Ya existe el responsable",
-            "account.unique" => "Ya existe la cuenta",
-        ]);
-        try {
-            Responsible::create([
-                "name" => $request->name,
-                "account" => $request->account,
-                "phone" => $request->phone,
-            ]);
-            return redirect(route("responsibles.index"))->with("success","Responsable creado");
+        try 
+        {
+            $response = (new Api)->store("responsibles",$request->toArray());
+            return redirect(route("responsibles.index"))->with($response["type"],$response["message"]);
         }
-        catch (Throwable $throwable){
+        catch (Throwable $throwable)
+        {
             Log::channel("error_inventory")->error("ERROR RESPONSIBLE STORE : ".json_encode($throwable->getMessage()));
-            return redirect(route("responsibles.index"))->with("error","Error al crear");
+            return redirect(route("responsibles.index"))->with("error","Error API");
         }
     }
 
@@ -58,26 +58,15 @@ class ResponsibleController extends Controller
      * @param Responsible $responsible
      * @return Application|RedirectResponse|Redirector
      */
-    public function update(Request $request, Responsible $responsible): Redirector|RedirectResponse|Application
+    public function update(UpdateResponsibleRequest $request, $id)
     {
-        $request->validate([
-            "name" => Rule::unique(Responsible::class)->ignore($responsible->id),
-            "account" => Rule::unique(Responsible::class)->ignore($responsible->id),
-        ],[
-            "name.unique" => "El nombre ya existe",
-            "account.unique" => "La cuenta ya existe",
-        ]);
         try {
-            $responsible->update([
-                "name" => $request->name,
-                "account" => $request->account,
-                "phone" => $request->phone,
-            ]);
-            return redirect(route("responsibles.index"))->with("success","Responsable Editado");
+            $response = (new Api)->update("responsibles/".$id,$request->toArray());
+            return redirect(route("responsibles.index"))->with($response["type"],$response["message"]);
         }
         catch (Throwable $throwable){
             Log::channel("error_inventory")->error("ERROR TYPE DEVICE UPDATE : ".json_encode($throwable->getMessage()));
-            return redirect(route("responsibles.index"))->with("error","Error al Actualizar");
+            return redirect(route("responsibles.index"))->with("error","Error API");
         }
     }
 
@@ -85,15 +74,17 @@ class ResponsibleController extends Controller
      * @param Responsible $responsible
      * @return Application|RedirectResponse|Redirector
      */
-    public function destroy(Responsible $responsible): Redirector|RedirectResponse|Application
+    public function destroy($id): Redirector|RedirectResponse|Application
     {
-        try {
-            $responsible->delete();
-            return redirect(route("responsibles.index"))->with("success","Responsable Eliminado");
+        try 
+        {
+            $response = (new Api)->destroy("responsibles/".$id);
+            return redirect(route("responsibles.index"))->with($response["type"],$response["message"]);
         }
-        catch (Throwable $throwable){
+        catch (Throwable $throwable)
+        {
             Log::channel("error_inventory")->error("ERROR RESPONSIBLE DESTROY : ".json_encode($throwable->getMessage()));
-            return redirect(route("responsibles.index"))->with("error","Error al Eliminar");
+            return redirect(route("responsibles.index"))->with("error","Error API");
         }
     }
 }

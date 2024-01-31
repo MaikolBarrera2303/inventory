@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -31,16 +30,18 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        try {
+        try 
+        {
             $user = User::where("email",$request->user)->first();
-            if ($user && Hash::check($request->password,$user->password)){
+            if ($user && Hash::check($request->password,$user->password))
+            {
                 Auth::login($user,$request->boolean("remember"));
                 return redirect(route("devices.index"));
             }
             return redirect(route("login"))->with("error","Credenciales incorrectas");
-
-
-        }catch (Throwable $throwable){
+        }
+        catch (Throwable $throwable)
+        {
             Log::channel("error_inventory")->error("ERROR AUTH LOGIN : ".json_encode($throwable->getMessage()));
             return redirect(route("login"))->with("error","Error al iniciar sesion");
         }
@@ -52,7 +53,8 @@ class AuthController extends Controller
      */
     public function logout(Request $request): Redirector|RedirectResponse|Application
     {
-        try {
+        try 
+        {
             Auth::logout();
 
             $request->session()->invalidate();
@@ -63,7 +65,9 @@ class AuthController extends Controller
 
             return redirect(route("login"));
 
-        }catch (Throwable $throwable){
+        }
+        catch (Throwable $throwable)
+        {
             Log::channel("error_inventory")->error("ERROR AUTH LOGOUT : ".json_encode($throwable->getMessage()));
             return redirect(route((explode("/",$request->header()["referer"][0]))[3].".index"))
                 ->with("error","Error al Cerrar Sesion");

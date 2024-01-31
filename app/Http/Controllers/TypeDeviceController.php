@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TypeDevices\StoreTypeDeviceRequest;
 use App\Models\Api;
 use App\Models\TypeDevice;
-use App\Models\Validation;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
@@ -21,19 +21,25 @@ class TypeDeviceController extends Controller
      */
     public function index(): View|Factory|Application
     {
-        return view("type-devices.index",[
-            "typeDevices" => (new Api())->index("type-devices",request("page"))
-        ]);
+        try
+        {
+            return view("type-devices.index",[
+                "typeDevices" => (new Api())->index("type-devices",request("page"))
+            ]);
+        }
+        catch(Throwable $throwable)
+        {
+            Log::channel("error_inventory")->error("ERROR TYPE_DEVICE STORE : ".json_encode($throwable->getMessage()));
+            return  redirect(route("logout"))->with("error","Error API");
+        }
     }
 
     /**
      * @param Request $request
      * @return Application|RedirectResponse|Redirector
      */
-    public function store(Request $request): Redirector|RedirectResponse|Application
+    public function store(StoreTypeDeviceRequest $request): Redirector|RedirectResponse|Application
     {
-        $validation = (new Validation)->typeDevice();
-        $request->validate($validation["validate"],$validation["message"]);
         try 
         {
             $response = (new Api)->store("type-devices",$request->toArray());
@@ -52,13 +58,15 @@ class TypeDeviceController extends Controller
      */
     public function destroy($id): Redirector|RedirectResponse|Application
     {
-        try {
+        try 
+        {
             $response = (new Api)->destroy("type-devices/".$id);
             return redirect(route("type-devices.index"))->with($response["type"],$response["message"]);
         }
-        catch (Throwable $throwable) {
+        catch (Throwable $throwable) 
+        {
             Log::channel("error_inventory")->error("ERROR TYPE_DEVICES DESTROY : ".json_encode($throwable->getMessage()));
-            return redirect(route("type-devices.index"))->with("error","Error Eliminando el dispositivo");
+            return redirect(route("type-devices.index"))->with("error","Error API");
         }
     }
 }

@@ -31,6 +31,7 @@
             </thead>
             <tbody>
             @forelse($responsibles as $responsible)
+            @php $responsible = (object)$responsible; @endphp
                 <tr>
                     <td>{{ $responsible->name }}</td>
                     <td>{{ $responsible->account }}</td>
